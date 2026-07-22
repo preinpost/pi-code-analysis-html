@@ -52,6 +52,7 @@
 
   --font-sans:"Pretendard",sans-serif;
   --font-display:"Noto Serif KR",Georgia,serif;
+  --font-mono:"JetBrains Mono","SF Mono","Cascadia Code",Consolas,monospace;
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
@@ -272,8 +273,53 @@ td .dim{color:var(--ink-4);font-size:12px;display:block;margin-top:2px}
 
 /* ---------- VIZ 3b : program involvement table ---------- */
 .prog .pname code{font-size:12.5px;font-weight:700;background:var(--surface-2);border-radius:4px;padding:2px 7px;color:var(--ink)}
-.prog .pcls{font-size:12px;color:var(--ink-4);line-height:1.6}
 .prog tr.hotrow td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+/* file chips — 프로그램(파일) 하나하나 */
+.pfiles{display:flex;flex-wrap:wrap;gap:6px;max-width:440px}
+.file{
+  display:inline-flex;align-items:center;gap:6px;cursor:default;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--ink-2);
+  background:var(--paper);border:1px solid var(--line-soft);border-radius:6px;
+  padding:4px 9px 4px 8px;
+  transition:transform .18s,border-color .18s,box-shadow .18s,background .18s;
+}
+.file::before{content:"";flex:0 0 auto;width:6px;height:6px;border-radius:50%}
+.file.r::before{background:var(--accent)}
+.file.w::before{background:var(--brand-clay-deep)}
+.file.r.w::before{background:linear-gradient(135deg,var(--accent) 50%,var(--brand-clay-deep) 50%)}
+.file.c::before{background:var(--ink-5)}
+.file.i::before{background:var(--brand-kraft)}
+.file:hover{transform:translateY(-2px);border-color:var(--accent);background:var(--surface-1);box-shadow:0 4px 10px rgba(60,50,30,.08)}
+.file .ext{color:var(--ink-5);font-weight:400}
+
+/* ---------- VIZ 3c : dependency graph ---------- */
+.depgraph{border:1px solid var(--line-soft);border-radius:var(--radius);background:var(--paper);overflow:hidden}
+.depgraph svg{display:block;width:100%;height:auto}
+.dg-lane{fill:var(--surface-1);opacity:.55}
+.dg-lane-label{font-family:var(--font-sans);font-size:10.5px;font-weight:800;letter-spacing:.12em;fill:var(--ink-4)}
+.dg-node{cursor:pointer;transition:opacity .25s}
+.dg-node rect{fill:var(--paper);stroke:var(--line-soft);stroke-width:1;transition:stroke .2s,stroke-width .2s}
+.dg-node:hover rect{stroke:var(--accent);stroke-width:1.5}
+.dg-node .dg-name{font-family:var(--font-mono);font-size:10.5px;font-weight:600;fill:var(--ink-2)}
+.dg-node .dg-sub{font-family:var(--font-sans);font-size:8.5px;fill:var(--ink-5)}
+.dg-node.db rect{fill:rgba(217,119,87,.08);stroke:var(--brand-kraft)}
+.dg-node.db .dg-name{fill:var(--accent-deep);font-weight:700}
+.dg-edge{fill:none;stroke:var(--ink-6);stroke-width:1.2;transition:stroke .2s,opacity .25s,stroke-width .2s}
+.dg-edge.bean{stroke-dasharray:4 3}
+.dg-edge.install{stroke-dasharray:4 3;stroke:var(--brand-kraft)}
+.dg-edge.db{stroke:var(--brand-kraft)}
+.depgraph.focus .dg-node{opacity:.22}
+.depgraph.focus .dg-node.on{opacity:1}
+.depgraph.focus .dg-edge{opacity:.1}
+.depgraph.focus .dg-edge.on{opacity:1;stroke:var(--accent);stroke-width:2}
+.depgraph.focus .dg-edge.on.db,.depgraph.focus .dg-edge.on.install{stroke:var(--brand-clay-deep)}
+.dg-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding:12px 16px;border-top:1px solid var(--line-softer);font-size:11.5px;color:var(--ink-4)}
+.dg-legend .li{display:inline-flex;align-items:center;gap:7px}
+.dg-legend .swatch{width:26px;height:0;border-top:2px solid var(--ink-6)}
+.dg-legend .swatch.bean{border-top-style:dashed}
+.dg-legend .swatch.db{border-top-color:var(--brand-kraft)}
+.dg-legend .swatch.install{border-top:2px dashed var(--brand-kraft)}
+.dg-hint{margin-left:auto;color:var(--ink-5);font-size:11px}
 .pb{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;border-radius:999px;padding:3px 9px;margin:1px 4px 1px 0;vertical-align:middle;white-space:nowrap}
 .pb.read{color:var(--accent-deep);background:rgba(217,119,87,.12);border:1px solid rgba(217,119,87,.3)}
 .pb.write{color:#fff;background:var(--accent);border:1px solid var(--accent)}
@@ -486,53 +532,96 @@ footer{
 
   <div class="table-wrap reveal">
     <table class="prog">
-      <thead><tr><th style="width:20%">프로그램 / 모듈</th><th style="width:15%">역할</th><th style="width:23%">관여</th><th>핵심 클래스</th></tr></thead>
+      <thead><tr><th style="width:17%">모듈</th><th style="width:11%">역할</th><th style="width:17%">관여</th><th>프로그램 파일 <span style="font-weight:500;color:var(--ink-4)">(각 파일이 하나의 프로그램)</span></th></tr></thead>
       <tbody>
         <tr class="hotrow">
           <td class="pname"><code>openstackit-common</code></td>
           <td>비즈니스 로직</td>
           <td><span class="pb read">READ</span><span class="pb write">WRITE</span></td>
-          <td class="pcls">MonitoringServiceImpl · BatchReportingTelegraf/Hsflowd · LoadBalancerMetricServiceImpl · LoadCalculatorImpl</td>
+          <td class="pfiles">
+            <span class="file r w" title="실시간 메트릭 조회 + LB 쓰기">MonitoringServiceImpl<span class="ext">.java</span></span>
+            <span class="file r" title="리포팅 집계 조회 (telegraf)">BatchReportingTelegraf<span class="ext">.java</span></span>
+            <span class="file r" title="리포팅 집계 조회 (hsflowd)">BatchReportingHsflowd<span class="ext">.java</span></span>
+            <span class="file r" title="리포팅 서비스">ReportingServiceImpl<span class="ext">.java</span></span>
+            <span class="file r w" title="LB 메트릭 조회 + WriteApi 쓰기">LoadBalancerMetricServiceImpl<span class="ext">.java</span></span>
+            <span class="file r" title="리로케이션 부하 계산">LoadCalculatorImpl<span class="ext">.java</span></span>
+            <span class="file r" title="이전 정책">RelocationPolicyServiceImpl<span class="ext">.java</span></span>
+          </td>
         </tr>
         <tr class="hotrow">
           <td class="pname"><code>openstackit-batch</code></td>
           <td>배치 처리</td>
           <td><span class="pb read">READ</span><span class="pb write">WRITE</span><span class="pb config">CONFIG</span></td>
-          <td class="pcls">MonitoringConfiguration(다중 클라이언트) · AlarmEvaluator · TrafficSummary · AutoScale* · GpuMetricLoader</td>
+          <td class="pfiles">
+            <span class="file c w" title="다중 클라이언트 + WriteApi 빈 생성">MonitoringConfiguration<span class="ext">.java</span></span>
+            <span class="file r" title="알람 평가">AlarmEvaluator<span class="ext">.java</span></span>
+            <span class="file r" title="트래픽 과금 집계">TrafficSummary<span class="ext">.java</span></span>
+            <span class="file r" title="GPU 메트릭 로드">GpuMetricLoader<span class="ext">.java</span></span>
+            <span class="file r" title="오토스케일 헬스체크">AutoScaleHealthChecker<span class="ext">.java</span></span>
+            <span class="file w" title="LB 지표 계산·저장">LoadBalancerMetricCalculateAndSaveTasklet<span class="ext">.java</span></span>
+          </td>
         </tr>
         <tr>
           <td class="pname"><code>openstackit-servlet</code></td>
           <td>웹 앱 (REST)</td>
           <td><span class="pb read">READ</span><span class="pb config">CONFIG</span></td>
-          <td class="pcls">MonitoringConfiguration(createV1 단일) · MonitoringController</td>
+          <td class="pfiles">
+            <span class="file c" title="createV1 단일 클라이언트 빈">MonitoringConfiguration<span class="ext">.java</span></span>
+            <span class="file r" title="모니터링 REST API">MonitoringController<span class="ext">.java</span></span>
+          </td>
         </tr>
         <tr>
           <td class="pname"><code>openstackit-core</code></td>
           <td>기반 라이브러리</td>
           <td><span class="pb config">CONFIG</span></td>
-          <td class="pcls">InfluxDB2Properties · InfluxDB2Util · @Measurement DTO · flux-dsl 의존성</td>
+          <td class="pfiles">
+            <span class="file c" title="influx.* 설정 프로퍼티">InfluxDB2Properties<span class="ext">.java</span></span>
+            <span class="file r" title="Flux→POJO 변환 (레거시)">InfluxDB2Util<span class="ext">.java</span></span>
+            <span class="file c" title="버킷 상수 OPENSTACKIT">OpenstackitConstant<span class="ext">.java</span></span>
+            <span class="file c" title="Flux*/Aggregate* 메트릭 DTO 9종">Flux·Aggregate DTO<span class="ext">×9</span></span>
+            <span class="file c" title="리포팅 DTO 3종">Reporting DTO<span class="ext">×3</span></span>
+          </td>
         </tr>
         <tr>
           <td class="pname"><code>openstackit-installer</code></td>
           <td>설치 유틸리티</td>
           <td><span class="pb install">INSTALL</span></td>
-          <td class="pcls">TaskMonitoringAgent — InfluxDB 1.7.8 deb + telegraf 스크립트 배포</td>
+          <td class="pfiles">
+            <span class="file i" title="InfluxDB 1.7.8 deb + telegraf 스크립트 배포">TaskMonitoringAgent<span class="ext">.java</span></span>
+          </td>
         </tr>
         <tr>
           <td class="pname"><code>openstackit-openstack4j</code></td>
           <td>OpenStack API 래퍼</td>
           <td><span class="pb none">—</span></td>
-          <td class="pcls">관련 없음</td>
+          <td class="pfiles"><span style="font-size:11.5px;color:var(--ink-5)">관련 파일 없음</span></td>
         </tr>
       </tbody>
     </table>
   </div>
-  <p class="prog-cap reveal">▲ <span class="pb read">READ</span> Flux 조회 · <span class="pb write">WRITE</span> WriteApi 기록 · <span class="pb config">CONFIG</span> 클라이언트/프로퍼티 구성 · <span class="pb install">INSTALL</span> 설치·배포</p>
+  <p class="prog-cap reveal">▲ 파일 칩 앞 점: <span class="file r" style="pointer-events:none">조회</span> <span class="file w" style="pointer-events:none">쓰기</span> <span class="file c" style="pointer-events:none">구성</span> <span class="file i" style="pointer-events:none">설치</span> · 모듈 배지는 해당 모듈의 전체 관여도</p>
+</section>
+
+<!-- ======================= 04 DEPENDENCY GRAPH ======================= -->
+<section id="depgraph">
+  <div class="sec-head reveal"><span class="no tnum">04</span><h2>파일 의존성 그래프 — 모든 파일의 연결 지도</h2></div>
+  <p class="sec-lede reveal">InfluxDB를 만지는 <b>모든 파일</b>을 노드로 펼쳤다. 실선은 컴파일 의존, 점선은 런타임 빈 주입, 크라프트선은 InfluxDB로의 조회/쓰기. 노드에 마우스를 올리면 해당 파일의 연결만 강조된다.</p>
+
+  <div class="depgraph reveal" id="dg">
+    <!-- SVG is rendered by vanilla JS below -->
+    <div class="dg-legend">
+      <span class="li"><span class="swatch"></span>uses (컴파일 의존)</span>
+      <span class="li"><span class="swatch bean"></span>bean 주입 (런타임)</span>
+      <span class="li"><span class="swatch db"></span>InfluxDB 조회/쓰기</span>
+      <span class="li"><span class="swatch install"></span>설치/배포</span>
+      <span class="dg-hint">노드 호버 → 연결 강조</span>
+    </div>
+  </div>
 </section>
 
 <!-- ======================= 03 CLIENT CONFIG ======================= -->
 <section id="config">
-  <div class="sec-head reveal"><span class="no tnum">04</span><h2>클라이언트 구성 — servlet vs batch</h2></div>
+  <div class="sec-head reveal"><span class="no tnum">05</span><h2>클라이언트 구성 — servlet vs batch</h2></div>
   <p class="sec-lede reveal">같은 <code>InfluxDB2Properties</code> 를 읽지만 두 모듈의 빈 구성이 다르다. batch 가 다중 노드·쓰기 지원으로 더 진화한 형태.</p>
 
   <div class="table-wrap reveal">
@@ -552,7 +641,7 @@ footer{
 
 <!-- ======================= 04 READ vs WRITE ======================= -->
 <section id="rw">
-  <div class="sec-head reveal"><span class="no tnum">05</span><h2>사용 패턴 — 읽기에 극단적으로 치우침</h2></div>
+  <div class="sec-head reveal"><span class="no tnum">06</span><h2>사용 패턴 — 읽기에 극단적으로 치우침</h2></div>
   <p class="sec-lede reveal">파일당 Flux 관련 코드 출현 빈도. 조회는 전 도메인에 퍼져 있고, 쓰기는 LB 메트릭 단일 경로뿐이다.</p>
 
   <div class="bars reveal">
@@ -568,7 +657,7 @@ footer{
 
 <!-- ======================= 05 DATA MODEL ======================= -->
 <section id="model">
-  <div class="sec-head reveal"><span class="no tnum">06</span><h2>데이터 모델 — measurement 카탈로그</h2></div>
+  <div class="sec-head reveal"><span class="no tnum">07</span><h2>데이터 모델 — measurement 카탈로그</h2></div>
   <p class="sec-lede reveal">모든 쿼리는 <code>Flux.from("openstackit")</code> 에서 시작해 measurement 로 구분한다. 노드/인스턴스는 필드 키를 정적 Map 으로 관리한다.</p>
 
   <div class="mgrid reveal">
@@ -589,7 +678,7 @@ footer{
 
 <!-- ======================= 06 FINDINGS ======================= -->
 <section id="findings">
-  <div class="sec-head reveal"><span class="no tnum">07</span><h2>관찰 &amp; 개선 포인트</h2></div>
+  <div class="sec-head reveal"><span class="no tnum">08</span><h2>관찰 &amp; 개선 포인트</h2></div>
   <p class="sec-lede reveal">동작에는 문제없지만 정리할 잔재와 불일치가 있다.</p>
 
   <div class="finds reveal">
@@ -639,6 +728,168 @@ const bio = new IntersectionObserver(es => es.forEach(e => {
   bio.unobserve(e.target);
 }), { threshold: .3 });
 document.querySelectorAll('.bars').forEach(el => bio.observe(el));
+
+/* ---------- dependency graph (vanilla JS -> SVG) ---------- */
+(function(){
+  const wrap = document.getElementById('dg');
+  if(!wrap) return;
+
+  const LANES = [
+    {id:'core',     label:'CORE · 기반',     x:14,  w:205},
+    {id:'common',   label:'COMMON · 비즈니스', x:234, w:245},
+    {id:'servlet',  label:'SERVLET · 웹',     x:494, w:180},
+    {id:'batch',    label:'BATCH · 배치',     x:689, w:200},
+    {id:'installer',label:'INSTALLER · 설치', x:904, w:162},
+  ];
+  const NODE_H=42, GAP=13, TOP=46;
+
+  const NODES = [
+    {id:'c_prop', lane:'core', name:'InfluxDB2Properties', sub:'influx.* 설정'},
+    {id:'c_util', lane:'core', name:'InfluxDB2Util', sub:'Flux→POJO (레거시)'},
+    {id:'c_const',lane:'core', name:'OpenstackitConstant', sub:'버킷 상수'},
+    {id:'c_dtof', lane:'core', name:'Flux·Aggregate DTO', sub:'메트릭 DTO ×9'},
+    {id:'c_dtor', lane:'core', name:'Reporting DTO', sub:'리포팅 DTO ×3'},
+    {id:'c_dtog', lane:'core', name:'GpuDto·RelocationNode', sub:'GPU/이전 DTO'},
+
+    {id:'m_mon',  lane:'common', name:'MonitoringServiceImpl', sub:'실시간 조회'},
+    {id:'m_bt',   lane:'common', name:'BatchReportingTelegraf', sub:'리포팅 조회'},
+    {id:'m_bh',   lane:'common', name:'BatchReportingHsflowd', sub:'리포팅 조회'},
+    {id:'m_rep',  lane:'common', name:'ReportingServiceImpl', sub:'리포팅 집계'},
+    {id:'m_lb',   lane:'common', name:'LoadBalancerMetricServiceImpl', sub:'LB 조회+쓰기'},
+    {id:'m_load', lane:'common', name:'LoadCalculatorImpl', sub:'부하 계산'},
+    {id:'m_rel',  lane:'common', name:'RelocationPolicyServiceImpl', sub:'이전 정책'},
+
+    {id:'s_conf', lane:'servlet', name:'MonitoringConfiguration', sub:'createV1 단일 빈'},
+
+    {id:'b_conf', lane:'batch', name:'MonitoringConfiguration', sub:'다중 클라이언트+WriteApi'},
+    {id:'b_alarm',lane:'batch', name:'AlarmEvaluator', sub:'알람 평가'},
+    {id:'b_traf', lane:'batch', name:'TrafficSummary', sub:'트래픽 과금'},
+    {id:'b_gpu',  lane:'batch', name:'GpuMetricLoader', sub:'GPU 메트릭'},
+    {id:'b_auto', lane:'batch', name:'AutoScaleHealthChecker', sub:'헬스체크'},
+    {id:'b_lb',   lane:'batch', name:'LoadBalancerMetric…Tasklet', sub:'LB 지표 저장'},
+
+    {id:'i_task', lane:'installer', name:'TaskMonitoringAgent', sub:'InfluxDB 설치'},
+
+    {id:'db', lane:'db', name:'InfluxDB v1.8', sub:'시계열 저장소 · openstackit / 365d', db:true},
+  ];
+
+  const EDGES = [
+    {from:'s_conf', to:'c_prop', type:'use'},
+    {from:'b_conf', to:'c_prop', type:'use'},
+    {from:'m_mon',  to:'c_util', type:'use'},
+    {from:'m_mon',  to:'c_dtof', type:'use'},
+    {from:'m_bt',   to:'c_dtof', type:'use'},
+    {from:'m_bh',   to:'c_dtof', type:'use'},
+    {from:'m_rep',  to:'c_dtor', type:'use'},
+    {from:'m_lb',   to:'c_const',type:'use'},
+    {from:'m_mon',  to:'c_const',type:'use'},
+    {from:'m_load', to:'c_dtog', type:'use'},
+    {from:'m_rel',  to:'c_dtog', type:'use'},
+    {from:'b_alarm',to:'c_dtof', type:'use'},
+    {from:'b_traf', to:'c_const',type:'use'},
+
+    {from:'s_conf', to:'m_mon',  type:'bean'},
+    {from:'s_conf', to:'m_lb',   type:'bean'},
+    {from:'b_conf', to:'b_alarm',type:'bean'},
+    {from:'b_conf', to:'b_traf', type:'bean'},
+    {from:'b_conf', to:'b_gpu',  type:'bean'},
+    {from:'b_conf', to:'b_auto', type:'bean'},
+    {from:'b_conf', to:'m_lb',   type:'bean'},
+
+    {from:'m_mon',  to:'db', type:'db'},
+    {from:'m_lb',   to:'db', type:'db'},
+    {from:'b_alarm',to:'db', type:'db'},
+    {from:'b_traf', to:'db', type:'db'},
+
+    {from:'i_task', to:'db', type:'install'},
+  ];
+
+  /* layout */
+  const byId = {};
+  NODES.forEach(n=>byId[n.id]=n);
+  const byLane = {};
+  NODES.forEach(n=>{ if(n.lane!=='db')(byLane[n.lane]=byLane[n.lane]||[]).push(n); });
+  Object.keys(byLane).forEach(lid=>{
+    const lane = LANES.find(l=>l.id===lid);
+    byLane[lid].forEach((n,i)=>{ n.x=lane.x+6; n.w=lane.w-12; n.y=TOP+i*(NODE_H+GAP); n.h=NODE_H; });
+  });
+  const maxBottom = Math.max(...NODES.filter(n=>n.lane!=='db').map(n=>n.y+n.h));
+  const db = byId['db'];
+  db.w=300; db.h=48; db.x=(1080-db.w)/2; db.y=maxBottom+46;
+  const H = db.y+db.h+18;
+
+  const NS='http://www.w3.org/2000/svg';
+  const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+  const svg = el('svg',{viewBox:`0 0 1080 ${H}`,role:'img','aria-label':'InfluxDB 관련 파일 의존성 그래프'});
+
+  /* markers */
+  const defs = el('defs',{});
+  const mk=(id,fill)=>{const m=el('marker',{id,viewBox:'0 0 10 10',refX:'8',refY:'5',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});m.appendChild(el('path',{d:'M0,0 L10,5 L0,10 z',fill}));defs.appendChild(m);};
+  mk('arr-ink','#C9C3B6'); mk('arr-kraft','#D4A27F');
+  svg.appendChild(defs);
+
+  /* lane bands + labels */
+  LANES.forEach(l=>{
+    svg.appendChild(el('rect',{class:'dg-lane',x:l.x,y:12,width:l.w,height:maxBottom-2,rx:8}));
+    const t=el('text',{class:'dg-lane-label',x:l.x+10,y:30}); t.textContent=l.label; svg.appendChild(t);
+  });
+
+  /* edge path builder */
+  const dbEdges = EDGES.filter(e=>e.to==='db');
+  function pathFor(e){
+    const s=byId[e.from], t=byId[e.to];
+    if(t.id==='db'){
+      const x1=s.x+s.w/2, y1=s.y+s.h;
+      const i=dbEdges.indexOf(e), n=dbEdges.length;
+      const x2=db.x+db.w*((i+1)/(n+1)), y2=db.y;
+      const dy=(y2-y1)*0.5;
+      return `M ${x1} ${y1} C ${x1} ${y1+dy}, ${x2} ${y2-dy}, ${x2} ${y2}`;
+    }
+    if(s.lane===t.lane){
+      const x1=s.x, y1=s.y+s.h/2, x2=t.x, y2=t.y+t.h/2, off=16;
+      return `M ${x1} ${y1} C ${x1-off} ${y1}, ${x2-off} ${y2}, ${x2} ${y2}`;
+    }
+    const x1=s.x, y1=s.y+s.h/2, x2=t.x+t.w, y2=t.y+t.h/2;
+    const dx=Math.max(30,(x1-x2)*0.45);
+    return `M ${x1} ${y1} C ${x1-dx} ${y1}, ${x2+dx} ${y2}, ${x2} ${y2}`;
+  }
+
+  /* edges */
+  EDGES.forEach(e=>{
+    const p=el('path',{class:'dg-edge '+e.type,d:pathFor(e),
+      'marker-end':(e.type==='db'||e.type==='install')?'url(#arr-kraft)':'url(#arr-ink)'});
+    p.dataset.from=e.from; p.dataset.to=e.to;
+    svg.appendChild(p);
+  });
+
+  /* nodes */
+  NODES.forEach(n=>{
+    const g=el('g',{class:'dg-node'+(n.db?' db':''),transform:`translate(${n.x},${n.y})`});
+    g.dataset.id=n.id;
+    g.appendChild(el('rect',{width:n.w,height:n.h,rx:7}));
+    const nm=el('text',{class:'dg-name',x:9,y:17}); nm.textContent=n.name; g.appendChild(nm);
+    const sb=el('text',{class:'dg-sub',x:9,y:31}); sb.textContent=n.sub; g.appendChild(sb);
+    const tt=el('title',{}); tt.textContent=`${n.name} — ${n.sub}`; g.appendChild(tt);
+    svg.appendChild(g);
+  });
+
+  wrap.insertBefore(svg, wrap.firstChild);
+
+  /* hover focus */
+  const focus=id=>{
+    wrap.classList.add('focus');
+    const conn=new Set([id]);
+    EDGES.forEach(e=>{ if(e.from===id||e.to===id){conn.add(e.from);conn.add(e.to);} });
+    svg.querySelectorAll('.dg-node').forEach(nd=>nd.classList.toggle('on',conn.has(nd.dataset.id)));
+    svg.querySelectorAll('.dg-edge').forEach(p=>p.classList.toggle('on',p.dataset.from===id||p.dataset.to===id));
+  };
+  const unfocus=()=>{
+    wrap.classList.remove('focus');
+    svg.querySelectorAll('.on').forEach(x=>x.classList.remove('on'));
+  };
+  svg.addEventListener('mouseover',e=>{const g=e.target.closest('.dg-node'); if(g)focus(g.dataset.id);});
+  svg.addEventListener('mouseout',e=>{const g=e.target.closest('.dg-node'); if(g)unfocus();});
+})();
 </script>
 </body>
 </html>

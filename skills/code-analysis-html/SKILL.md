@@ -29,16 +29,17 @@ Apply this design system **only when the user explicitly requests a visual/HTML 
 
 ## How to Use
 
-1. **Read the full ruleset first.** Before generating, read [references/design-system.md](references/design-system.md) from start to finish. Tokens, the component catalog (flow / stack / stats / bars / matrix / chips / findings), motion recipes, and the responsive rules are all defined there; use only the defined tokens and components.
-2. **Reference the example.** Check the finished output shape in [assets/example-influxdb-analysis.html](assets/example-influxdb-analysis.html) — a real backend analysis rendered with the full component set (masthead + sparkline + stat strip → flow → stack → matrix → bars → chip grid → findings).
-3. **Output a single HTML file.** Inline the CSS in `<style>` and the motion in a small vanilla `<script>`; no external dependencies except the Pretendard/Noto Serif KR font CDNs. **Never pull in chart/diagram libraries (Mermaid, Chart.js, D3)** — every visual is pure CSS + inline SVG.
-4. **Verify with the checklist.** After finishing, go through "10. Authoring Checklist" in design-system.md item by item.
+1. **Read the full ruleset first.** Before generating, read [references/design-system.md](references/design-system.md) from start to finish. Tokens, the component catalog (flow / stack / stats / bars / matrix / chips / findings), the two **mandatory** components (§7.9 file-chip involvement table, §7.10 data-driven dependency graph), motion recipes, and the responsive rules are all defined there; use only the defined tokens and components.
+2. **Reference the example.** Check the finished output shape in [assets/example-influxdb-analysis.html](assets/example-influxdb-analysis.html) — one concrete analysis (InfluxDB) rendered with the full set. **The components are generic**: reuse the same patterns and the §7.10 renderer template for *any* codebase by filling in its own lanes/nodes/edges — never copy the InfluxDB content.
+3. **Analyze the real code first.** The two mandatory components (§7.9, §7.10) must be filled from the *actual* files of the codebase under analysis — enumerate real file names, group them into real modules, and derive real dependency edges. Do not invent files.
+4. **Output a single HTML file.** Inline the CSS in `<style>` and the motion/graph in a small vanilla `<script>`; no external dependencies except the Pretendard/Noto Serif KR font CDNs. **Never pull in chart/diagram libraries (Mermaid, Chart.js, D3)** — every visual is pure CSS + inline SVG (the §7.10 graph is vanilla JS generating inline SVG).
+5. **Verify with the checklist.** After finishing, go through "10. Authoring Checklist" in design-system.md item by item.
 
 ## Core Principles (Summary)
 
 - **Open with the subject, not a hero.** The masthead leads with whatever is most characteristic of the analysis — a data pipeline for a storage system, a module stack for a library, a metric sparkline for a time-series topic.
 - **Diagram-first sections.** Every section is `number + serif H2 + lede + one visual`. Prose is limited to the 1–2 sentence lede; the visual carries the content.
-- **Always a program involvement table.** Every analysis page must include the program/module table (§7.9) answering *“which programs are related?”* — one row per program, READ/WRITE/CONFIG/INSTALL badges, hot rows highlighted, `—` rows for unrelated programs so coverage is visibly complete.
+- **Two mandatory components, filled from the real code.** Every page must include (a) the program involvement table (§7.9) — one row per module, each individual **file** as a chip (프로그램 = 파일 하나하나) with an involvement dot + tooltip — and (b) the file-level dependency graph (§7.10) — **all** involved files as nodes in module swimlanes, with hover-focus. Both are generic templates you fill with the analyzed codebase's real files; that is what makes this skill reusable across any code.
 - **One accent = clay.** Terracotta `#D97757` is the only chromatic accent; it marks the *hot* path (active nodes, primary bars, key numbers). Everything else is the ink family.
 - **Alive but editorial.** Animated dash-flow on pipeline arrows, count-up stat numbers, scroll reveals, hover lifts — subtle vanilla motion, never flashy.
 - **Numbers must be crisp** — `font-feature-settings: "tnum"` on all numeric text.

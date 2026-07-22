@@ -507,35 +507,56 @@ Numbered cards with a clay left rule; hover slides right.
 
 ### 7.9 Program involvement table (`.prog`) — **mandatory in every analysis**
 
-> Every analysis page **must** include a program/module involvement table answering *“which programs are related to this topic?”* One row per program/module; involvement shown as badges; the most-involved rows get a clay left rule (`.hotrow`). Always include the legend caption.
+> Every analysis page **must** include a program/module involvement table answering *“which programs are related to this topic?”* Here **프로그램 = 파일 하나하나** (each individual source file is a “program”). One row per **module/group**; the last column lists that module’s individual **file chips** (never a `·`-separated string). Module-level involvement badges + per-file involvement dots. Most-involved rows get a clay left rule (`.hotrow`). Always include the legend caption.
 
 ```html
 <div class="table-wrap reveal">
   <table class="prog">
-    <thead><tr><th>프로그램 / 모듈</th><th>역할</th><th>관여</th><th>핵심 클래스</th></tr></thead>
+    <thead><tr><th>모듈</th><th>역할</th><th>관여</th>
+      <th>프로그램 파일 <span style="font-weight:500;color:var(--ink-4)">(각 파일이 하나의 프로그램)</span></th></tr></thead>
     <tbody>
       <tr class="hotrow">
         <td class="pname"><code>openstackit-common</code></td>
         <td>비즈니스 로직</td>
         <td><span class="pb read">READ</span><span class="pb write">WRITE</span></td>
-        <td class="pcls">MonitoringServiceImpl · LoadBalancerMetricServiceImpl</td>
+        <td class="pfiles">
+          <span class="file r w" title="실시간 조회 + LB 쓰기">MonitoringServiceImpl<span class="ext">.java</span></span>
+          <span class="file r" title="리포팅 집계 조회">BatchReportingTelegraf<span class="ext">.java</span></span>
+        </td>
       </tr>
       <tr>
         <td class="pname"><code>openstackit-openstack4j</code></td>
         <td>OpenStack API 래퍼</td>
         <td><span class="pb none">—</span></td>
-        <td class="pcls">관련 없음</td>
+        <td class="pfiles"><span style="font-size:11.5px;color:var(--ink-5)">관련 파일 없음</span></td>
       </tr>
     </tbody>
   </table>
 </div>
-<p class="prog-cap reveal">▲ <span class="pb read">READ</span> 조회 · <span class="pb write">WRITE</span> 기록 · <span class="pb config">CONFIG</span> 구성 · <span class="pb install">INSTALL</span> 설치·배포</p>
+<p class="prog-cap reveal">▲ 파일 칩 앞 점: <span class="file r" style="pointer-events:none">조회</span> <span class="file w" style="pointer-events:none">쓰기</span> <span class="file c" style="pointer-events:none">구성</span> <span class="file i" style="pointer-events:none">설치</span> · 모듈 배지는 해당 모듈의 전체 관여도</p>
 ```
 
 ```css
 .prog .pname code{font-size:12.5px;font-weight:700;background:var(--surface-2);border-radius:4px;padding:2px 7px;color:var(--ink)}
-.prog .pcls{font-size:12px;color:var(--ink-4);line-height:1.6}
 .prog tr.hotrow td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+/* file chips — one chip = one program file */
+.pfiles{display:flex;flex-wrap:wrap;gap:6px;max-width:440px}
+.file{
+  display:inline-flex;align-items:center;gap:6px;cursor:default;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--ink-2);
+  background:var(--paper);border:1px solid var(--line-soft);border-radius:6px;
+  padding:4px 9px 4px 8px;
+  transition:transform .18s,border-color .18s,box-shadow .18s,background .18s;
+}
+.file::before{content:"";flex:0 0 auto;width:6px;height:6px;border-radius:50%}
+.file.r::before{background:var(--accent)}
+.file.w::before{background:var(--brand-clay-deep)}
+.file.r.w::before{background:linear-gradient(135deg,var(--accent) 50%,var(--brand-clay-deep) 50%)}
+.file.c::before{background:var(--ink-5)}
+.file.i::before{background:var(--brand-kraft)}
+.file:hover{transform:translateY(-2px);border-color:var(--accent);background:var(--surface-1);box-shadow:0 4px 10px rgba(60,50,30,.08)}
+.file .ext{color:var(--ink-5);font-weight:400}
+/* module-level badges */
 .pb{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;border-radius:999px;
   padding:3px 9px;margin:1px 4px 1px 0;vertical-align:middle;white-space:nowrap}
 .pb.read{color:var(--accent-deep);background:rgba(217,119,87,.12);border:1px solid rgba(217,119,87,.3)}
@@ -546,17 +567,184 @@ Numbered cards with a clay left rule; hover slides right.
 .prog-cap{font-size:11.5px;color:var(--ink-5);margin-top:10px}
 ```
 
-Badge semantics (adapt labels to the analysis domain, keep the visual grammar):
+`--font-mono` (add to `:root`): a system monospace stack so file names read as code — `--font-mono:"JetBrains Mono","SF Mono","Cascadia Code",Consolas,monospace;` (no extra CDN).
 
-| Badge | Meaning | Visual weight |
+Per-file dot classes (combine as needed, e.g. `class="file r w"`):
+
+| Class | Meaning | Dot |
 |---|---|---|
-| `read` | queries/reads the subject | clay tint |
-| `write` | writes/mutates the subject | solid clay (strongest — writes are rarer) |
-| `config` | configures/wires it | neutral surface |
-| `install` | installs/deploys it | dashed kraft |
-| `none` | not related (`—`) | dashed, dimmed |
+| `.r` | reads/queries | clay |
+| `.w` | writes/mutates | deep clay |
+| `.c` | configures/wires | warm gray |
+| `.i` | installs/deploys | kraft |
 
-Rules: sort rows by involvement (most-involved first); mark the top rows `.hotrow`; list concrete class/file names in the last column, `·`-separated; unrelated programs still get a `—` row so the coverage is visibly complete.
+Module badge semantics (adapt labels to the domain, keep the visual grammar): `read` clay tint · `write` solid clay (strongest) · `config` neutral · `install` dashed kraft · `none` dashed dimmed.
+
+Rules: sort rows by involvement (most-involved first); mark the top rows `.hotrow`; **every chip = one real file**, with a `title` tooltip describing its role; show the extension in a dimmed `.ext` span (or a `×N` count for an aggregate chip of many similar files, e.g. `Flux·Aggregate DTO ×9`); unrelated modules still get a “관련 파일 없음” row so coverage is visibly complete.
+
+### 7.10 Dependency graph (`.depgraph`) — **mandatory file-level map**
+
+> Every analysis page **must** also include a file-level dependency graph showing **all** involved files as nodes. It is a swimlane node-link diagram: one vertical lane per module/layer/package, each node = one file, edges = relationships. Rendered as inline SVG by a small **data-driven vanilla-JS template** — you fill in three arrays (`LANES`, `NODES`, `EDGES`) for the codebase being analyzed; the template computes layout, routes bezier edges, and wires hover-focus.
+
+Markup (the SVG is injected before the legend by the script):
+
+```html
+<div class="depgraph reveal" id="dg">
+  <!-- SVG rendered by the template script -->
+  <div class="dg-legend">
+    <span class="li"><span class="swatch"></span>uses (컴파일 의존)</span>
+    <span class="li"><span class="swatch bean"></span>bean 주입 / 런타임</span>
+    <span class="li"><span class="swatch db"></span>외부 시스템 조회/쓰기</span>
+    <span class="li"><span class="swatch install"></span>설치/배포</span>
+    <span class="dg-hint">노드 호버 → 연결 강조</span>
+  </div>
+</div>
+```
+
+```css
+.depgraph{border:1px solid var(--line-soft);border-radius:var(--radius);background:var(--paper);overflow:hidden}
+.depgraph svg{display:block;width:100%;height:auto}
+.dg-lane{fill:var(--surface-1);opacity:.55}
+.dg-lane-label{font-family:var(--font-sans);font-size:10.5px;font-weight:800;letter-spacing:.12em;fill:var(--ink-4)}
+.dg-node{cursor:pointer;transition:opacity .25s}
+.dg-node rect{fill:var(--paper);stroke:var(--line-soft);stroke-width:1;transition:stroke .2s,stroke-width .2s}
+.dg-node:hover rect{stroke:var(--accent);stroke-width:1.5}
+.dg-node .dg-name{font-family:var(--font-mono);font-size:10.5px;font-weight:600;fill:var(--ink-2)}
+.dg-node .dg-sub{font-family:var(--font-sans);font-size:8.5px;fill:var(--ink-5)}
+.dg-node.db rect{fill:rgba(217,119,87,.08);stroke:var(--brand-kraft)}
+.dg-node.db .dg-name{fill:var(--accent-deep);font-weight:700}
+.dg-edge{fill:none;stroke:var(--ink-6);stroke-width:1.2;transition:stroke .2s,opacity .25s,stroke-width .2s}
+.dg-edge.bean{stroke-dasharray:4 3}
+.dg-edge.install{stroke-dasharray:4 3;stroke:var(--brand-kraft)}
+.dg-edge.db{stroke:var(--brand-kraft)}
+.depgraph.focus .dg-node{opacity:.22}
+.depgraph.focus .dg-node.on{opacity:1}
+.depgraph.focus .dg-edge{opacity:.1}
+.depgraph.focus .dg-edge.on{opacity:1;stroke:var(--accent);stroke-width:2}
+.depgraph.focus .dg-edge.on.db,.depgraph.focus .dg-edge.on.install{stroke:var(--brand-clay-deep)}
+.dg-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding:12px 16px;border-top:1px solid var(--line-softer);font-size:11.5px;color:var(--ink-4)}
+.dg-legend .li{display:inline-flex;align-items:center;gap:7px}
+.dg-legend .swatch{width:26px;height:0;border-top:2px solid var(--ink-6)}
+.dg-legend .swatch.bean{border-top-style:dashed}
+.dg-legend .swatch.db{border-top-color:var(--brand-kraft)}
+.dg-legend .swatch.install{border-top:2px dashed var(--brand-kraft)}
+.dg-hint{margin-left:auto;color:var(--ink-5);font-size:11px}
+```
+
+**The reusable renderer template.** Paste this `<script>` and replace only the `LANES` / `NODES` / `EDGES` arrays (and the container `id` if you change it). Everything else — layout, edge routing, arrows, hover-focus — is generic.
+
+```js
+(function(){
+  const wrap = document.getElementById('dg');
+  if(!wrap) return;
+
+  /* ── FILL THIS: one lane per module/layer/package, left→right in dependency order ── */
+  const LANES = [
+    {id:'core',   label:'CORE · 기반',   x:14,  w:205},
+    {id:'common', label:'COMMON · 비즈니스', x:234, w:245},
+    /* …add a lane per group; keep total width ≈ 1080… */
+  ];
+  const NODE_H=42, GAP=13, TOP=46;
+
+  /* ── FILL THIS: one node per file. lane = a LANES.id; `db:true` marks the single
+        external/system anchor node (auto-placed bottom-center). Aggregate many similar
+        files (DTOs, migrations…) into one node with a `×N` sub. ── */
+  const NODES = [
+    {id:'c_prop', lane:'core',   name:'InfluxDB2Properties', sub:'influx.* 설정'},
+    {id:'m_mon',  lane:'common', name:'MonitoringServiceImpl', sub:'실시간 조회'},
+    {id:'db',     lane:'db',     name:'InfluxDB v1.8', sub:'시계열 저장소', db:true},
+    /* …every involved file… */
+  ];
+
+  /* ── FILL THIS: type = 'use' (solid) | 'bean' (dashed, runtime/DI) |
+        'db' (to the external anchor) | 'install' (dashed kraft) ── */
+  const EDGES = [
+    {from:'m_mon', to:'c_prop', type:'use'},
+    {from:'m_mon', to:'db',     type:'db'},
+    /* … */
+  ];
+
+  /* ── generic below — do not edit ── */
+  const byId={}; NODES.forEach(n=>byId[n.id]=n);
+  const byLane={}; NODES.forEach(n=>{ if(!n.db)(byLane[n.lane]=byLane[n.lane]||[]).push(n); });
+  Object.keys(byLane).forEach(lid=>{
+    const lane=LANES.find(l=>l.id===lid);
+    byLane[lid].forEach((n,i)=>{ n.x=lane.x+6; n.w=lane.w-12; n.y=TOP+i*(NODE_H+GAP); n.h=NODE_H; });
+  });
+  const maxBottom=Math.max(...NODES.filter(n=>!n.db).map(n=>n.y+n.h));
+  const db=NODES.find(n=>n.db);
+  if(db){ db.w=300; db.h=48; db.x=(1080-db.w)/2; db.y=maxBottom+46; }
+  const H=(db?db.y+db.h:maxBottom)+18;
+
+  const NS='http://www.w3.org/2000/svg';
+  const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+  const svg=el('svg',{viewBox:`0 0 1080 ${H}`,role:'img','aria-label':'파일 의존성 그래프'});
+  const defs=el('defs',{});
+  const mk=(id,fill)=>{const m=el('marker',{id,viewBox:'0 0 10 10',refX:'8',refY:'5',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});m.appendChild(el('path',{d:'M0,0 L10,5 L0,10 z',fill}));defs.appendChild(m);};
+  mk('arr-ink','#C9C3B6'); mk('arr-kraft','#D4A27F'); svg.appendChild(defs);
+
+  LANES.forEach(l=>{
+    svg.appendChild(el('rect',{class:'dg-lane',x:l.x,y:12,width:l.w,height:maxBottom-2,rx:8}));
+    const t=el('text',{class:'dg-lane-label',x:l.x+10,y:30}); t.textContent=l.label; svg.appendChild(t);
+  });
+
+  const dbEdges=EDGES.filter(e=>byId[e.to]&&byId[e.to].db);
+  function pathFor(e){
+    const s=byId[e.from], t=byId[e.to];
+    if(t.db){
+      const x1=s.x+s.w/2, y1=s.y+s.h, i=dbEdges.indexOf(e), n=dbEdges.length;
+      const x2=t.x+t.w*((i+1)/(n+1)), y2=t.y, dy=(y2-y1)*0.5;
+      return `M ${x1} ${y1} C ${x1} ${y1+dy}, ${x2} ${y2-dy}, ${x2} ${y2}`;
+    }
+    if(s.lane===t.lane){
+      const x1=s.x, y1=s.y+s.h/2, x2=t.x, y2=t.y+t.h/2, off=16;
+      return `M ${x1} ${y1} C ${x1-off} ${y1}, ${x2-off} ${y2}, ${x2} ${y2}`;
+    }
+    const ltr = s.x < t.x;                       /* works both directions */
+    const x1 = ltr? s.x+s.w : s.x,   y1=s.y+s.h/2;
+    const x2 = ltr? t.x     : t.x+t.w, y2=t.y+t.h/2;
+    const dx=Math.max(30,Math.abs(x2-x1)*0.45)*(ltr?1:1);
+    return `M ${x1} ${y1} C ${x1+(ltr?dx:-dx)} ${y1}, ${x2+(ltr?-dx:dx)} ${y2}, ${x2} ${y2}`;
+  }
+
+  EDGES.forEach(e=>{
+    const p=el('path',{class:'dg-edge '+e.type,d:pathFor(e),
+      'marker-end':(e.type==='db'||e.type==='install')?'url(#arr-kraft)':'url(#arr-ink)'});
+    p.dataset.from=e.from; p.dataset.to=e.to; svg.appendChild(p);
+  });
+
+  NODES.forEach(n=>{
+    const g=el('g',{class:'dg-node'+(n.db?' db':''),transform:`translate(${n.x},${n.y})`});
+    g.dataset.id=n.id;
+    g.appendChild(el('rect',{width:n.w,height:n.h,rx:7}));
+    const nm=el('text',{class:'dg-name',x:9,y:17}); nm.textContent=n.name; g.appendChild(nm);
+    const sb=el('text',{class:'dg-sub',x:9,y:31}); sb.textContent=n.sub; g.appendChild(sb);
+    const tt=el('title',{}); tt.textContent=`${n.name} — ${n.sub}`; g.appendChild(tt);
+    svg.appendChild(g);
+  });
+
+  wrap.insertBefore(svg, wrap.firstChild);
+
+  const focus=id=>{
+    wrap.classList.add('focus');
+    const conn=new Set([id]);
+    EDGES.forEach(e=>{ if(e.from===id||e.to===id){conn.add(e.from);conn.add(e.to);} });
+    svg.querySelectorAll('.dg-node').forEach(nd=>nd.classList.toggle('on',conn.has(nd.dataset.id)));
+    svg.querySelectorAll('.dg-edge').forEach(p=>p.classList.toggle('on',p.dataset.from===id||p.dataset.to===id));
+  };
+  const unfocus=()=>{ wrap.classList.remove('focus'); svg.querySelectorAll('.on').forEach(x=>x.classList.remove('on')); };
+  svg.addEventListener('mouseover',e=>{const g=e.target.closest('.dg-node'); if(g)focus(g.dataset.id);});
+  svg.addEventListener('mouseout', e=>{const g=e.target.closest('.dg-node'); if(g)unfocus();});
+})();
+```
+
+Authoring rules:
+- **All involved files appear as nodes** — that is the point of this component. If a group is too numerous (DTOs, value objects, migrations), aggregate into one node with a `×N` sub rather than dropping them.
+- Lanes run left→right in dependency order (most-depended-on left). One lane per module/layer/package; keep total width ≈ 1080.
+- Node `name` = short file/class name (fits ~24 mono chars per 170px lane); put the full name + role in the `<title>` tooltip via `sub`.
+- Keep the edge set meaningful (≈15–25): direct `use`, runtime/DI `bean`, edges to the external `db` anchor, and `install`. Too many edges → spaghetti; prefer aggregating targets.
+- Exactly **one** `db:true` anchor (the external system / DB / service the code talks to). Omit it and the `db`/`install` edge types if the analysis has no external anchor.
+- Hover-focus is the readability mechanism — always keep it wired.
 
 ---
 
@@ -646,5 +834,7 @@ Check before delivering:
 - [ ] No chart/diagram libraries — pure CSS + inline SVG + vanilla JS
 - [ ] `≤860px` breakpoint handled (vertical flow, stacked bars)
 - [ ] Findings use the numbered clay-rule cards, each ≤2 sentences
-- [ ] **Program involvement table (§7.9) is present** — one row per program/module, involvement badges, `.hotrow` on the most-involved, legend caption, `—` rows for unrelated programs
+- [ ] **Program involvement table (§7.9) is present** — one row per module, each individual file as a `.file` chip (never a `·`-separated string) with involvement dot + `title` tooltip, module badges, `.hotrow` on the most-involved, legend caption, “관련 파일 없음” rows for unrelated modules
+- [ ] **Dependency graph (§7.10) is present** — data-driven SVG with ALL involved files as nodes, swimlanes per module, edge types (use/bean/db/install), hover-focus wired, legend
+- [ ] Both §7.9 and §7.10 are filled from the *actual* files of the analyzed codebase (the template is generic — no InfluxDB-specific leftovers)
 - [ ] Single self-contained `.html` file

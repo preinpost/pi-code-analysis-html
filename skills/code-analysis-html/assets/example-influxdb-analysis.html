@@ -317,6 +317,9 @@ td .dim{color:var(--ink-4);font-size:12px;display:block;margin-top:2px}
 .depgraph.focus .dg-edge.on{opacity:1;stroke:var(--accent);stroke-width:2.2}
 .depgraph.focus .dg-edge-halo.on{opacity:1}
 .depgraph.focus .dg-edge.on.db,.depgraph.focus .dg-edge.on.install{stroke:var(--brand-clay-deep)}
+.dg-node.pinned rect{stroke:var(--accent-deep);stroke-width:2;fill:rgba(217,119,87,.06)}
+.dg-node.pinned .dg-name{fill:var(--accent-deep)}
+.depgraph.pinned .dg-hint{color:var(--accent-deep);font-weight:600}
 .dg-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding:12px 16px;border-top:1px solid var(--line-softer);font-size:11.5px;color:var(--ink-4)}
 .dg-legend .li{display:inline-flex;align-items:center;gap:7px}
 .dg-legend .swatch{width:26px;height:0;border-top:2px solid var(--ink-6)}
@@ -609,7 +612,7 @@ footer{
 <!-- ======================= 04 DEPENDENCY GRAPH ======================= -->
 <section id="depgraph">
   <div class="sec-head reveal"><span class="no tnum">04</span><h2>파일 의존성 그래프 — 모든 파일의 연결 지도</h2></div>
-  <p class="sec-lede reveal">InfluxDB를 만지는 <b>모든 파일</b>을 노드로 펼쳤다. 실선은 컴파일 의존, 점선은 런타임 빈 주입, 크라프트선은 InfluxDB로의 조회/쓰기. 노드에 마우스를 올리면 해당 파일의 연결만 강조된다.</p>
+  <p class="sec-lede reveal">InfluxDB를 만지는 <b>모든 파일</b>을 노드로 펼쳤다. 실선은 컴파일 의존, 점선은 런타임 빈 주입, 크라프트선은 InfluxDB로의 조회/쓰기. 노드에 마우스를 올리면 해당 파일의 연결만 강조되고, <b>클릭하면 고정</b>된다(다시 클릭하거나 Esc로 해제).</p>
 
   <div class="depgraph reveal" id="dg">
     <!-- SVG is rendered by vanilla JS below -->
@@ -618,7 +621,7 @@ footer{
       <span class="li"><span class="swatch bean"></span>bean 주입 (런타임)</span>
       <span class="li"><span class="swatch db"></span>InfluxDB 조회/쓰기</span>
       <span class="li"><span class="swatch install"></span>설치/배포</span>
-      <span class="dg-hint">노드 호버 → 연결 강조</span>
+      <span class="dg-hint">노드 호버 → 연결 강조 · 클릭 → 고정</span>
     </div>
   </div>
 </section>
@@ -912,7 +915,11 @@ document.querySelectorAll('.bars').forEach(el => bio.observe(el));
 
   wrap.insertBefore(svg, wrap.firstChild);
 
-  /* hover focus */
+  /* hover focus + click-to-pin */
+  let pinned=null;
+  const hint=wrap.querySelector('.dg-hint');
+  const HINT_IDLE='노드 호버 → 연결 강조 · 클릭 → 고정';
+  const HINT_PIN='고정됨 — 다시 클릭 · 빈 곳 클릭 · Esc 로 해제';
   const focus=id=>{
     wrap.classList.add('focus');
     const conn=new Set([id]);
@@ -924,8 +931,24 @@ document.querySelectorAll('.bars').forEach(el => bio.observe(el));
     wrap.classList.remove('focus');
     svg.querySelectorAll('.on').forEach(x=>x.classList.remove('on'));
   };
+  const setPin=id=>{
+    pinned=id;
+    svg.querySelectorAll('.dg-node.pinned').forEach(x=>x.classList.remove('pinned'));
+    if(id){
+      svg.querySelector('.dg-node[data-id="'+id+'"]').classList.add('pinned');
+      wrap.classList.add('pinned');
+      if(hint)hint.textContent=HINT_PIN;
+      focus(id);
+    }else{
+      wrap.classList.remove('pinned');
+      if(hint)hint.textContent=HINT_IDLE;
+      unfocus();
+    }
+  };
   svg.addEventListener('mouseover',e=>{const g=e.target.closest('.dg-node'); if(g)focus(g.dataset.id);});
-  svg.addEventListener('mouseout',e=>{const g=e.target.closest('.dg-node'); if(g)unfocus();});
+  svg.addEventListener('mouseout',e=>{const g=e.target.closest('.dg-node'); if(g)(pinned?focus(pinned):unfocus());});
+  svg.addEventListener('click',e=>{const g=e.target.closest('.dg-node'); setPin(g?(pinned===g.dataset.id?null:g.dataset.id):null);});
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&pinned)setPin(null); });
 })();
 </script>
 </body>

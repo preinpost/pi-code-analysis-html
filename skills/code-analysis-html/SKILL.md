@@ -1,6 +1,6 @@
 ---
 name: code-analysis-html
-description: Render code/architecture analysis results as a single-file visual HTML dashboard — data-flow diagrams, dependency stacks, stat tiles, CSS charts, and finding cards in the warm-editorial design language. Use when the user asks to visualize an analysis, e.g. "분석해서 시각화해줘", "이미지화해서 보여줘", "다이어그램으로 정리해줘", "이 분석 HTML로 그려줘", "코드 분석해서 HTML로 만들어줘", "분석 결과 HTML로", "코드 분석 HTML". IMPORTANT: when the request contains both "분석" (analysis) and "HTML", this skill takes priority over make-html. Do not apply for prose reports without analysis content (that is make-html), simple Q&A, or Markdown-only needs.
+description: 'Render code/architecture analysis results as a single-file visual HTML dashboard — data-flow diagrams, dependency stacks, stat tiles, CSS charts, and finding cards in the warm-editorial design language. Use when the user asks to visualize an analysis, e.g. "분석해서 시각화해줘", "이미지화해서 보여줘", "다이어그램으로 정리해줘", "이 분석 HTML로 그려줘", "코드 분석해서 HTML로 만들어줘", "분석 결과 HTML로", "코드 분석 HTML". IMPORTANT: when the request contains both "분석" (analysis) and "HTML", this skill takes priority over make-html. Do not apply for prose reports without analysis content (that is make-html), simple Q&A, or Markdown-only needs.'
 ---
 
 # code-analysis-html — Visual Analysis Design System
@@ -40,7 +40,7 @@ Apply this design system **only when the user explicitly requests a visual/HTML 
 
 - **Open with the subject, not a hero.** The masthead leads with whatever is most characteristic of the analysis — a data pipeline for a storage system, a module stack for a library, a metric sparkline for a time-series topic.
 - **Diagram-first sections.** Every section is `number + serif H2 + lede + one visual`. Prose is limited to the 1–2 sentence lede; the visual carries the content.
-- **Two mandatory components, filled from the real code.** Every page must include (a) the program involvement table (§7.9) — one row per module, each individual **file** as a chip (프로그램 = 파일 하나하나) with an involvement dot + tooltip — and (b) the file-level dependency graph (§7.10) — **all** involved files as nodes in module swimlanes, with hover-focus. Both are generic templates you fill with the analyzed codebase's real files; that is what makes this skill reusable across any code.
+- **Two mandatory components, filled from the real code.** Every page must include (a) the program involvement table (§7.9) — one row per module, each individual **file** as a chip (프로그램 = 파일 하나하나) with an involvement dot + tooltip — and (b) the file-level dependency graph (§7.10) — **all** involved files as nodes in module swimlanes, with hover-focus + click-pin. Both are generic templates you fill with the analyzed codebase's real files; that is what makes this skill reusable across any code.
 - **One accent = clay.** Terracotta `#D97757` is the only chromatic accent; it marks the *hot* path (active nodes, primary bars, key numbers). Everything else is the ink family.
 - **Alive but editorial.** Animated dash-flow on pipeline arrows, count-up stat numbers, scroll reveals, hover lifts — subtle vanilla motion, never flashy.
 - **Numbers must be crisp** — `font-feature-settings: "tnum"` on all numeric text.

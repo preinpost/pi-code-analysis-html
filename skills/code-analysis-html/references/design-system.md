@@ -584,7 +584,7 @@ Rules: sort rows by involvement (most-involved first); mark the top rows `.hotro
 
 ### 7.10 Dependency graph (`.depgraph`) — **mandatory file-level map**
 
-> Every analysis page **must** also include a file-level dependency graph showing **all** involved files as nodes. It is a swimlane node-link diagram: one vertical lane per module/layer/package, each node = one file, edges = relationships. Rendered as inline SVG by a small **data-driven vanilla-JS template** — you fill in three arrays (`LANES`, `NODES`, `EDGES`) for the codebase being analyzed; the template computes layout, routes bezier edges, and wires hover-focus.
+> Every analysis page **must** also include a file-level dependency graph showing **all** involved files as nodes. It is a swimlane node-link diagram: one vertical lane per module/layer/package, each node = one file, edges = relationships. Rendered as inline SVG by a small **data-driven vanilla-JS template** — you fill in three arrays (`LANES`, `NODES`, `EDGES`) for the codebase being analyzed; the template computes layout, routes bezier edges, and wires hover-focus + click-pin.
 
 Markup (the SVG is injected before the legend by the script):
 
@@ -596,7 +596,7 @@ Markup (the SVG is injected before the legend by the script):
     <span class="li"><span class="swatch bean"></span>bean 주입 / 런타임</span>
     <span class="li"><span class="swatch db"></span>외부 시스템 조회/쓰기</span>
     <span class="li"><span class="swatch install"></span>설치/배포</span>
-    <span class="dg-hint">노드 호버 → 연결 강조</span>
+    <span class="dg-hint">노드 호버 → 연결 강조 · 클릭 → 고정</span>
   </div>
 </div>
 ```
@@ -626,6 +626,10 @@ Markup (the SVG is injected before the legend by the script):
 .depgraph.focus .dg-edge.on{opacity:1;stroke:var(--accent);stroke-width:2.2}
 .depgraph.focus .dg-edge-halo.on{opacity:1}
 .depgraph.focus .dg-edge.on.db,.depgraph.focus .dg-edge.on.install{stroke:var(--brand-clay-deep)}
+/* click-pin: the locked node keeps a clay ring; the hint switches to release instructions */
+.dg-node.pinned rect{stroke:var(--accent-deep);stroke-width:2;fill:rgba(217,119,87,.06)}
+.dg-node.pinned .dg-name{fill:var(--accent-deep)}
+.depgraph.pinned .dg-hint{color:var(--accent-deep);font-weight:600}
 .dg-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding:12px 16px;border-top:1px solid var(--line-softer);font-size:11.5px;color:var(--ink-4)}
 .dg-legend .li{display:inline-flex;align-items:center;gap:7px}
 .dg-legend .swatch{width:26px;height:0;border-top:2px solid var(--ink-6)}
@@ -635,7 +639,7 @@ Markup (the SVG is injected before the legend by the script):
 .dg-hint{margin-left:auto;color:var(--ink-5);font-size:11px}
 ```
 
-**The reusable renderer template.** Paste this `<script>` and replace only the `LANES` / `NODES` / `EDGES` arrays (and the container `id` if you change it). Everything else — layout, edge routing, arrows, hover-focus — is generic.
+**The reusable renderer template.** Paste this `<script>` and replace only the `LANES` / `NODES` / `EDGES` arrays (and the container `id` if you change it). Everything else — layout, edge routing, arrows, hover-focus, click-pin — is generic.
 
 ```js
 (function(){
@@ -765,6 +769,11 @@ Markup (the SVG is injected before the legend by the script):
 
   wrap.insertBefore(svg, wrap.firstChild);
 
+  /* hover = preview, click = pin (re-click / background click / Esc = release) */
+  let pinned=null;
+  const hint=wrap.querySelector('.dg-hint');
+  const HINT_IDLE='노드 호버 → 연결 강조 · 클릭 → 고정';
+  const HINT_PIN='고정됨 — 다시 클릭 · 빈 곳 클릭 · Esc 로 해제';
   const focus=id=>{
     wrap.classList.add('focus');
     const conn=new Set([id]);
@@ -773,18 +782,35 @@ Markup (the SVG is injected before the legend by the script):
     svg.querySelectorAll('.dg-edge, .dg-edge-halo').forEach(p=>p.classList.toggle('on',p.dataset.from===id||p.dataset.to===id));
   };
   const unfocus=()=>{ wrap.classList.remove('focus'); svg.querySelectorAll('.on').forEach(x=>x.classList.remove('on')); };
+  const setPin=id=>{
+    pinned=id;
+    svg.querySelectorAll('.dg-node.pinned').forEach(x=>x.classList.remove('pinned'));
+    if(id){
+      svg.querySelector('.dg-node[data-id="'+id+'"]').classList.add('pinned');
+      wrap.classList.add('pinned');
+      if(hint)hint.textContent=HINT_PIN;
+      focus(id);
+    }else{
+      wrap.classList.remove('pinned');
+      if(hint)hint.textContent=HINT_IDLE;
+      unfocus();
+    }
+  };
   svg.addEventListener('mouseover',e=>{const g=e.target.closest('.dg-node'); if(g)focus(g.dataset.id);});
-  svg.addEventListener('mouseout', e=>{const g=e.target.closest('.dg-node'); if(g)unfocus();});
+  svg.addEventListener('mouseout', e=>{const g=e.target.closest('.dg-node'); if(g)(pinned?focus(pinned):unfocus());});
+  svg.addEventListener('click',e=>{const g=e.target.closest('.dg-node'); setPin(g?(pinned===g.dataset.id?null:g.dataset.id):null);});
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&pinned)setPin(null); });
 })();
 ```
 
 Authoring rules:
+
 - **All involved files appear as nodes** — that is the point of this component. If a group is too numerous (DTOs, value objects, migrations), aggregate into one node with a `×N` sub rather than dropping them.
 - Lanes run left→right in dependency order (most-depended-on left). One lane per module/layer/package; keep total width ≈ 1080.
 - Node `name` = short file/class name (fits ~24 mono chars per 170px lane); put the full name + role in the `<title>` tooltip via `sub`.
 - Keep the edge set meaningful (≈15–25): direct `use`, runtime/DI `bean`, edges to the external `db` anchor, and `install`. Too many edges → spaghetti; prefer aggregating targets.
 - Exactly **one** `db:true` anchor (the external system / DB / service the code talks to). Omit it and the `db`/`install` edge types if the analysis has no external anchor.
-- Hover-focus is the readability mechanism — always keep it wired.
+- Hover-focus + click-pin is the readability mechanism — always keep it wired: hover previews a node's connections, **click locks (pins) the highlight**, re-click / background click / Esc releases; while pinned, hovering other nodes previews them and mouseout snaps back to the pin.
 - **Legibility is built in — keep it.** Lanes must sit ~30px apart (next.x − (prev.x+prev.w) ≈ 30) so gap-crossing edges don't pile up. The renderer already (a) staggers anchor ports along each node side so parallel lines fan out instead of overlapping, (b) bows same-lane edges out into the right gutter, (c) spreads parallel control points with bundle jitter, and (d) draws an ivory casing halo under every line so crossings stay separable. Do not remove these; if a graph still looks tangled, **reduce edges by aggregating targets** (e.g. one `×N` DTO node) rather than thinning the casing.
 
 ---
@@ -876,6 +902,6 @@ Check before delivering:
 - [ ] `≤860px` breakpoint handled (vertical flow, stacked bars)
 - [ ] Findings use the numbered clay-rule cards, each ≤2 sentences
 - [ ] **Program involvement table (§7.9) is present** — one row per module, each individual file as a `.file` chip (never a `·`-separated string) with involvement dot + `title` tooltip, module badges, `.hotrow` on the most-involved, legend caption, “관련 파일 없음” rows for unrelated modules
-- [ ] **Dependency graph (§7.10) is present** — data-driven SVG with ALL involved files as nodes, swimlanes per module, edge types (use/bean/db/install), hover-focus wired, legend
+- [ ] **Dependency graph (§7.10) is present** — data-driven SVG with ALL involved files as nodes, swimlanes per module, edge types (use/bean/db/install), hover-focus + click-pin wired, legend
 - [ ] Both §7.9 and §7.10 are filled from the *actual* files of the analyzed codebase (the template is generic — no InfluxDB-specific leftovers)
 - [ ] Single self-contained `.html` file

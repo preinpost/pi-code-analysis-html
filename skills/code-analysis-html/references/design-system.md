@@ -604,7 +604,7 @@ Markup (the SVG is injected before the legend by the script):
 ```css
 .depgraph{border:1px solid var(--line-soft);border-radius:var(--radius);background:var(--paper);overflow:hidden}
 .depgraph svg{display:block;width:100%;height:auto}
-.dg-lane{fill:var(--surface-1);opacity:.55}
+.dg-lane{fill:var(--surface-1);opacity:.5}
 .dg-lane-label{font-family:var(--font-sans);font-size:10.5px;font-weight:800;letter-spacing:.12em;fill:var(--ink-4)}
 .dg-node{cursor:pointer;transition:opacity .25s}
 .dg-node rect{fill:var(--paper);stroke:var(--line-soft);stroke-width:1;transition:stroke .2s,stroke-width .2s}
@@ -613,14 +613,18 @@ Markup (the SVG is injected before the legend by the script):
 .dg-node .dg-sub{font-family:var(--font-sans);font-size:8.5px;fill:var(--ink-5)}
 .dg-node.db rect{fill:rgba(217,119,87,.08);stroke:var(--brand-kraft)}
 .dg-node.db .dg-name{fill:var(--accent-deep);font-weight:700}
-.dg-edge{fill:none;stroke:var(--ink-6);stroke-width:1.2;transition:stroke .2s,opacity .25s,stroke-width .2s}
-.dg-edge.bean{stroke-dasharray:4 3}
-.dg-edge.install{stroke-dasharray:4 3;stroke:var(--brand-kraft)}
-.dg-edge.db{stroke:var(--brand-kraft)}
+/* edge casing: a paper-ivory halo under each line keeps crossings/overlaps legible */
+.dg-edge-halo{fill:none;stroke:#FBFAF6;stroke-width:3.6;stroke-linecap:round;transition:opacity .25s}
+.dg-edge{fill:none;stroke:var(--ink-5);stroke-width:1.5;transition:stroke .2s,opacity .25s,stroke-width .2s}
+.dg-edge.bean{stroke-dasharray:5 4;stroke:var(--ink-4)}
+.dg-edge.install{stroke-dasharray:5 4;stroke:var(--brand-kraft)}
+.dg-edge.db{stroke:var(--brand-kraft);stroke-width:1.6}
 .depgraph.focus .dg-node{opacity:.22}
 .depgraph.focus .dg-node.on{opacity:1}
-.depgraph.focus .dg-edge{opacity:.1}
-.depgraph.focus .dg-edge.on{opacity:1;stroke:var(--accent);stroke-width:2}
+.depgraph.focus .dg-edge{opacity:.08}
+.depgraph.focus .dg-edge-halo{opacity:.06}
+.depgraph.focus .dg-edge.on{opacity:1;stroke:var(--accent);stroke-width:2.2}
+.depgraph.focus .dg-edge-halo.on{opacity:1}
 .depgraph.focus .dg-edge.on.db,.depgraph.focus .dg-edge.on.install{stroke:var(--brand-clay-deep)}
 .dg-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding:12px 16px;border-top:1px solid var(--line-softer);font-size:11.5px;color:var(--ink-4)}
 .dg-legend .li{display:inline-flex;align-items:center;gap:7px}
@@ -640,9 +644,10 @@ Markup (the SVG is injected before the legend by the script):
 
   /* ── FILL THIS: one lane per module/layer/package, left→right in dependency order ── */
   const LANES = [
-    {id:'core',   label:'CORE · 기반',   x:14,  w:205},
-    {id:'common', label:'COMMON · 비즈니스', x:234, w:245},
-    /* …add a lane per group; keep total width ≈ 1080… */
+    {id:'core',   label:'CORE · 기반',   x:14,  w:186},
+    {id:'common', label:'COMMON · 비즈니스', x:230, w:230},
+    /* …one lane per group. Keep a ~30px GUTTER between lanes (next.x − (prev.x+prev.w) ≈ 30)
+         so edges that cross the gap don't pile up; keep total width ≈ 1080… */
   ];
   const NODE_H=42, GAP=13, TOP=46;
 
@@ -681,34 +686,69 @@ Markup (the SVG is injected before the legend by the script):
   const svg=el('svg',{viewBox:`0 0 1080 ${H}`,role:'img','aria-label':'파일 의존성 그래프'});
   const defs=el('defs',{});
   const mk=(id,fill)=>{const m=el('marker',{id,viewBox:'0 0 10 10',refX:'8',refY:'5',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});m.appendChild(el('path',{d:'M0,0 L10,5 L0,10 z',fill}));defs.appendChild(m);};
-  mk('arr-ink','#C9C3B6'); mk('arr-kraft','#D4A27F'); svg.appendChild(defs);
+  mk('arr-ink','#A8A093'); mk('arr-kraft','#D4A27F'); svg.appendChild(defs);
 
   LANES.forEach(l=>{
     svg.appendChild(el('rect',{class:'dg-lane',x:l.x,y:12,width:l.w,height:maxBottom-2,rx:8}));
     const t=el('text',{class:'dg-lane-label',x:l.x+10,y:30}); t.textContent=l.label; svg.appendChild(t);
   });
 
-  const dbEdges=EDGES.filter(e=>byId[e.to]&&byId[e.to].db);
+  /* ── anchor ports: spread edges along a node side so parallel lines fan out ── */
+  EDGES.forEach(e=>{
+    const s=byId[e.from], t=byId[e.to];
+    if(t.db){ e.ss='bottom'; e.ts='top'; }
+    else if(s.lane===t.lane){ e.ss='right'; e.ts='right'; }
+    else if(s.x < t.x){ e.ss='right'; e.ts='left'; }
+    else { e.ss='left'; e.ts='right'; }
+  });
+  function assignSlots(role){
+    const groups={};
+    EDGES.forEach(e=>{
+      const id=role==='s'?e.from:e.to, side=role==='s'?e.ss:e.ts;
+      (groups[id+'|'+side]=groups[id+'|'+side]||[]).push(e);
+    });
+    Object.values(groups).forEach(arr=>{
+      arr.sort((a,b)=>{
+        const o=role==='s'?byId[a.to]:byId[a.from], p=role==='s'?byId[b.to]:byId[b.from];
+        return (o.x+o.y)-(p.x+p.y);
+      });
+      arr.forEach((e,i)=>{ e['_slot_'+role]=(i+1)/(arr.length+1); });
+    });
+  }
+  assignSlots('s'); assignSlots('t');
+  function anchor(n,side,slot){
+    if(side==='left')  return {x:n.x,        y:n.y+n.h*slot};
+    if(side==='right') return {x:n.x+n.w,    y:n.y+n.h*slot};
+    if(side==='top')   return {x:n.x+n.w*slot,y:n.y};
+    return {x:n.x+n.w*slot, y:n.y+n.h}; /* bottom */
+  }
+  /* bundle jitter: parallel edges between the same lane-pair get spread control points */
+  const bc={};
+  EDGES.forEach(e=>{ const k=e.ss+e.ts+byId[e.from].lane+byId[e.to].lane; e._bi=bc[k]||0; bc[k]=(bc[k]||0)+1; e._bk=k; });
+
   function pathFor(e){
     const s=byId[e.from], t=byId[e.to];
-    if(t.db){
-      const x1=s.x+s.w/2, y1=s.y+s.h, i=dbEdges.indexOf(e), n=dbEdges.length;
-      const x2=t.x+t.w*((i+1)/(n+1)), y2=t.y, dy=(y2-y1)*0.5;
-      return `M ${x1} ${y1} C ${x1} ${y1+dy}, ${x2} ${y2-dy}, ${x2} ${y2}`;
+    const a=anchor(s,e.ss,e._slot_s), b=anchor(t,e.ts,e._slot_t);
+    const jit=(e._bi-((bc[e._bk]-1)/2))*4;
+    if(e.ss==='bottom'&&e.ts==='top'){
+      const dy=(b.y-a.y)*0.5;
+      return `M ${a.x} ${a.y} C ${a.x} ${a.y+dy}, ${b.x} ${b.y-dy}, ${b.x} ${b.y}`;
     }
     if(s.lane===t.lane){
-      const x1=s.x, y1=s.y+s.h/2, x2=t.x, y2=t.y+t.h/2, off=16;
-      return `M ${x1} ${y1} C ${x1-off} ${y1}, ${x2-off} ${y2}, ${x2} ${y2}`;
+      const lane=LANES.find(l=>l.id===s.lane);
+      const peak=lane.x+lane.w+12+e._bi*8;   /* bow out into the right gutter */
+      return `M ${a.x} ${a.y} C ${peak} ${a.y}, ${peak} ${b.y}, ${b.x} ${b.y}`;
     }
-    const ltr = s.x < t.x;                       /* works both directions */
-    const x1 = ltr? s.x+s.w : s.x,   y1=s.y+s.h/2;
-    const x2 = ltr? t.x     : t.x+t.w, y2=t.y+t.h/2;
-    const dx=Math.max(30,Math.abs(x2-x1)*0.45)*(ltr?1:1);
-    return `M ${x1} ${y1} C ${x1+(ltr?dx:-dx)} ${y1}, ${x2+(ltr?-dx:dx)} ${y2}, ${x2} ${y2}`;
+    const dx=Math.max(34,Math.abs(b.x-a.x)*0.42)+jit;
+    const c1x=e.ss==='right'?a.x+dx:a.x-dx, c2x=e.ts==='right'?b.x+dx:b.x-dx;
+    return `M ${a.x} ${a.y} C ${c1x} ${a.y}, ${c2x} ${b.y}, ${b.x} ${b.y}`;
   }
 
+  /* edges — halo (casing) first, then the line, so crossings stay readable */
   EDGES.forEach(e=>{
-    const p=el('path',{class:'dg-edge '+e.type,d:pathFor(e),
+    const d=pathFor(e);
+    const h=el('path',{class:'dg-edge-halo',d}); h.dataset.from=e.from; h.dataset.to=e.to; svg.appendChild(h);
+    const p=el('path',{class:'dg-edge '+e.type,d,
       'marker-end':(e.type==='db'||e.type==='install')?'url(#arr-kraft)':'url(#arr-ink)'});
     p.dataset.from=e.from; p.dataset.to=e.to; svg.appendChild(p);
   });
@@ -730,7 +770,7 @@ Markup (the SVG is injected before the legend by the script):
     const conn=new Set([id]);
     EDGES.forEach(e=>{ if(e.from===id||e.to===id){conn.add(e.from);conn.add(e.to);} });
     svg.querySelectorAll('.dg-node').forEach(nd=>nd.classList.toggle('on',conn.has(nd.dataset.id)));
-    svg.querySelectorAll('.dg-edge').forEach(p=>p.classList.toggle('on',p.dataset.from===id||p.dataset.to===id));
+    svg.querySelectorAll('.dg-edge, .dg-edge-halo').forEach(p=>p.classList.toggle('on',p.dataset.from===id||p.dataset.to===id));
   };
   const unfocus=()=>{ wrap.classList.remove('focus'); svg.querySelectorAll('.on').forEach(x=>x.classList.remove('on')); };
   svg.addEventListener('mouseover',e=>{const g=e.target.closest('.dg-node'); if(g)focus(g.dataset.id);});
@@ -745,6 +785,7 @@ Authoring rules:
 - Keep the edge set meaningful (≈15–25): direct `use`, runtime/DI `bean`, edges to the external `db` anchor, and `install`. Too many edges → spaghetti; prefer aggregating targets.
 - Exactly **one** `db:true` anchor (the external system / DB / service the code talks to). Omit it and the `db`/`install` edge types if the analysis has no external anchor.
 - Hover-focus is the readability mechanism — always keep it wired.
+- **Legibility is built in — keep it.** Lanes must sit ~30px apart (next.x − (prev.x+prev.w) ≈ 30) so gap-crossing edges don't pile up. The renderer already (a) staggers anchor ports along each node side so parallel lines fan out instead of overlapping, (b) bows same-lane edges out into the right gutter, (c) spreads parallel control points with bundle jitter, and (d) draws an ivory casing halo under every line so crossings stay separable. Do not remove these; if a graph still looks tangled, **reduce edges by aggregating targets** (e.g. one `×N` DTO node) rather than thinning the casing.
 
 ---
 
